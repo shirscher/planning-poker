@@ -1,0 +1,370 @@
+<!--
+    An html file with css and javascript that displays a playing card. Clicking on the playing card causes it to flip over using a css animation. 
+-->
+<html>
+
+<head>
+    <title>Playing Card</title>
+    <script type="text/javascript">
+        window.addEventListener('DOMContentLoaded', () => {
+            initCards();
+        });
+
+        function initCards() {
+            var cards = document.querySelectorAll('#player-cards .card');
+            var handSlots = document.querySelectorAll('#hand .card-slot');
+
+            cards.forEach((card, i) => {
+                card.addEventListener('click', function () {
+                    playCard(card);
+                });
+
+                moveCard(card,  handSlots[i]);
+            });
+        }
+
+        function flipCard(card) {
+            card.classList.toggle('flipped');
+        }
+
+        function moveCard(card, slot) {
+            card.style.left = slot.offsetLeft + "px";
+            card.style.top = slot.offsetTop + "px";
+        }
+
+        function playCard(card) {
+            moveCard(card, document.getElementById("board").querySelector(".card-slot"));
+        }
+
+        function withdrawCard(card) {
+
+        }
+
+        function otherPlayerPlayedCard(value, playerId) {
+            const cardContainer = document.querySelector('#other-cards');
+            const playerSlot = document.querySelectorAll('#board .card-slot')[playerId];
+            const card = createCard(value, playerSlot.offsetLeft, playerSlot.offsetTop, true);
+            cardContainer.append(card);
+        }
+
+        function revealBoard() {
+            const cards = document.getElementById("other-cards").querySelectorAll(".card");
+            cards.forEach((card)  => flipCard(card));
+        }
+
+        function resetBoard() {
+            // var cards = document.querySelectorAll('.card');
+            // cards.forEach(function(card) {
+            //     card.classList.remove('flipped');
+            // });
+        }
+
+        function createCard(value, left, top, flipped) {
+            const template = document.getElementById("card-template");
+            const clone = template.content.cloneNode(true);
+
+            const card = clone.querySelector(".card");
+            card.querySelector(".top-left").innerHTML
+                = card.querySelector(".bottom-right").innerHTML
+                = card.querySelector(".middle").innerHTML
+                = value;
+
+            card.style.left = left + "px";
+            card.style.top = top + "px";
+            if (flipped) card.classList.add("flipped");
+            card.classList.add("other-player");
+
+            return card;
+        }
+    </script>
+    <style>
+        body {
+            font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+        }
+
+        .hand {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .card-stack {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .card-stack .card-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .card-stack .card-container .player {
+            font-size: 12px;
+            font-weight: bold;
+            padding: 5px;
+        }
+
+        .card-slot {
+            width: 72px;
+            height: 96px;
+            position: relative;
+            perspective: 1000px;
+            background-color: white;
+            border: 1px dashed lightgrey;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        .card {
+            width: 72px;
+            height: 96px;
+            perspective: 1000px;
+            cursor: pointer;
+            padding: 5px;
+
+            position: absolute;
+        }
+
+        .card.player {
+            transition: left 0.2s ease-out, top 0.2s ease-out;
+        }
+
+        .card.other-player {
+            animation: card-pop-in .3s ease;
+        }
+        @keyframes card-pop-in {
+            0% {
+                opacity: 0;
+                transform: scale(.85);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.01);
+            }
+            70% { 
+                transform: scale(.95); 
+            }
+            100% { 
+                transform: scale(1); 
+            }
+        }
+
+        .card .front,
+        .card .back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            transition: transform 0.2s linear 0s;
+        }
+
+        .card .front {
+            z-index: 2;
+            background-color: white;
+            border: 1px solid black;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card .front .top-left,
+        .card .front .bottom-right {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .card .front .top-right,
+        .card .front .bottom-left {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .card .front .top-left {
+            text-align: left;
+        }
+
+        .card .front .middle {
+            text-align: center;
+        }
+
+        .card .front .bottom-right {
+            text-align: right;
+        }
+
+        .card .back {
+            background-color: purple;
+            background-size: cover;
+            transform: rotateY(180deg);
+            border: 1px solid black;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .card.flipped .front {
+            transform: rotateY(180deg);
+        }
+
+        .card.flipped .back {
+            transform: rotateY(0deg);
+        }
+    </style>
+    <template id="card-template">
+        <div class="card">
+            <div class="front">
+                <div class="top-left"></div>
+                <div class="middle"></div>
+                <div class="bottom-right"></div>
+            </div>
+            <div class="back"></div>
+        </div>
+    </template>
+</head>
+
+<body>
+    <header>
+        <h1>Planning Poker Room <a href="#">edit</a></h1>
+        Link: <a href="#">https://connective.poker/cWyi8w</a>
+    </header>
+
+    <div class="table">
+
+        <div id="board" class="card-stack">
+            <div class="card-container">
+                <div class="card-slot"></div>
+                <div class="player-name">Player 1</div>
+            </div>
+
+            <div class="card-container">
+                <div class="card-slot"></div>
+                <div class="player-name">Player 2</div>
+            </div>
+
+            <div class="card-container">
+                <div class="card-slot"></div>
+                <div class="player-name">Player 3</div>
+            </div>
+        </div>
+
+        <a href="#" onclick="otherPlayerPlayedCard('13', 2)">Add card</a>
+
+        <div class="toolbar">
+            <button onclick="revealBoard()">Reveal</button>
+            <button onclick="resetBoard()">Reset</button>
+        </div>
+
+        <div id="hand" class="card-stack">
+
+            <div class="card-container">
+                <div class="card-slot"></div>
+            </div>
+            <div class="card-container">
+                <div class="card-slot"></div>
+            </div>
+            <div class="card-container">
+                <div class="card-slot"></div>
+            </div>
+            <div class="card-container">
+                <div class="card-slot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        Name: Player 1 <a href="#">edit</a>
+    </div>
+    <div class="toolbar">
+        <button>Spectate</button>
+    </div>
+
+    <div id="other-cards"></div>
+    <div id="player-cards">
+        <div class="card player">
+            <div class="front">
+                <div class="top-left">
+                    <div class="suit">♠</div>
+                </div>
+                <div class="middle">
+                    <div class="value">1</div>
+                </div>
+                <div class="bottom-right">
+                    <div class="suit">♠</div>
+                </div>
+            </div>
+            <div class="back">
+                <div class="middle">
+                </div>
+            </div>
+        </div>
+        <div class="card player">
+            <div class="front">
+                <div class="top-left">
+                    <div class="suit">♠</div>
+                </div>
+                <div class="middle">
+                    <div class="value">2</div>
+                </div>
+                <div class="bottom-right">
+                    <div class="suit">♠</div>
+                </div>
+            </div>
+            <div class="back">
+                <div class="middle">
+                </div>
+            </div>
+        </div>
+        <div class="card player">
+            <div class="front">
+                <div class="top-left">
+                    <div class="suit">♠</div>
+                </div>
+                <div class="middle">
+                    <div class="value">3</div>
+                </div>
+                <div class="bottom-right">
+                    <div class="suit">♠</div>
+                </div>
+            </div>
+            <div class="back">
+                <div class="middle">
+                </div>
+            </div>
+        </div>
+        <div class="card player">
+            <div class="front">
+                <div class="top-left">
+                    <div class="suit">♠</div>
+                </div>
+                <div class="middle">
+                    <div class="value">5</div>
+                </div>
+                <div class="bottom-right">
+                    <div class="suit">♠</div>
+                </div>
+            </div>
+            <div class="back">
+                <div class="middle">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
