@@ -4,7 +4,7 @@
   "description": "A simple planning poker tool",
   "main": "index.js",
   "scripts": {
-    "host": "npx serve",
+    "serve": "serve",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/shirscher/planning-poker/issues"
   },
-  "homepage": "https://github.com/shirscher/planning-poker#readme"
+  "homepage": "https://github.com/shirscher/planning-poker#readme",
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
 }
