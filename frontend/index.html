@@ -4,77 +4,187 @@
 <html>
 
 <head>
-    <title>Playing Card</title>
+    <title>Planning Poker</title>
     <script type="text/javascript">
         window.addEventListener('DOMContentLoaded', () => {
-            initCards();
+            const config = {
+                cardValues: [
+                    {
+                        "value": "1",
+                    },
+                    {
+                        "value": "2",
+                    },
+                    {
+                        "value": "3",
+                    },
+                    {
+                        "value": "5",
+                    },
+                    {
+                        "value": "8",
+                    },
+                    {
+                        "value": "13",
+                    },
+                    {
+                        "value": "21",
+                    },
+                    {
+                        "value": "100",
+                    },
+                    {
+                        "value": "infinity",
+                        "html": "∞"
+                    },
+                    {
+                        "value": "coffee",
+                        "html": "☕"
+                    }
+                ]
+            };
+            
+            addPlayer(0, "Player 1", true);
+            initHand(config.cardValues);
         });
 
-        function initCards() {
-            var cards = document.querySelectorAll('#player-cards .card');
-            var handSlots = document.querySelectorAll('#hand .card-slot');
+        function initHand(cardValues) {
+            cardValues.forEach((cardValue) => {
+                const cardContainer = createHandCardContainer(cardValue.value);
+                const hand = document.getElementById("hand");
 
-            cards.forEach((card, i) => {
-                card.addEventListener('click', function () {
-                    playCard(card);
-                });
+                hand.append(cardContainer);
 
-                moveCard(card,  handSlots[i]);
+                const card = createCard(cardValue.value, cardValue.html, "player", false);
+                card.addEventListener('click', handleCardClick);
+                cardContainer.append(card);
             });
+        }
+
+        function handleCardClick(e) {
+            if (this.parentNode.parentNode.id === "hand") {
+                playCard(this);
+            } else {
+                withdrawCard(this);
+            }
+        }
+
+        function addPlayer(playerId, playerName, isCurrentPlayer) {
+            const playerContainer = createBoardPlayerCardContainer(playerId, playerName, isCurrentPlayer);
+            const board = document.getElementById("board");
+            board.append(playerContainer);
         }
 
         function flipCard(card) {
             card.classList.toggle('flipped');
         }
 
-        function moveCard(card, slot) {
-            card.style.left = slot.offsetLeft + "px";
-            card.style.top = slot.offsetTop + "px";
+        function moveCard(card, container){
+            // Need to move card to another parent and trigger animation
+            // Best way to do this is to create a new card and animate that
+            // see https://stackoverflow.com/questions/907279/jquery-animate-moving-dom-element-to-new-parent
+            const oldOffsetLeft = card.offsetLeft;
+            const oldOffsetTop = card.offsetTop;
+            card.parentNode.removeChild(card);
+            container.prepend(card);
+            const newOffsetLeft = card.offsetLeft;
+            const newOffsetTop = card.offsetTop;
+
+            const temp = card.cloneNode(true);
+            document.body.append(temp);
+            temp.style.left = oldOffsetLeft + 'px';
+            temp.style.top = oldOffsetTop + 'px';
+            temp.style.zIndex = 1000; // Big enough z-index to overlap anything else
+
+            card.style.display = 'none';
+            temp.animate(
+                    { 'top': newOffsetTop + 'px', 'left': newOffsetLeft + 'px' }, 
+                    { duration: 200, easing: 'ease-out' })
+                .finished.then(() => {
+                    card.style.display = '';
+                    temp.remove();
+                });
         }
 
         function playCard(card) {
-            moveCard(card, document.getElementById("board").querySelector(".card-slot"));
+            const boardContainer = document.querySelector("#board .card-container.current-player");
+            moveCard(card, boardContainer);
         }
 
         function withdrawCard(card) {
-
+            const handContainer = document.querySelector(`#hand .card-container[data-value="${card.dataset.value}"]`);
+            moveCard(card, handContainer);
         }
 
-        function otherPlayerPlayedCard(value, playerId) {
-            const cardContainer = document.querySelector('#other-cards');
-            const playerSlot = document.querySelectorAll('#board .card-slot')[playerId];
-            const card = createCard(value, playerSlot.offsetLeft, playerSlot.offsetTop, true);
-            cardContainer.append(card);
+        function playOtherPlayerCard(value, playerId) {
+            const playerContainer = document.querySelector(`#board .card-container[data-player-id="${playerId}"]`);
+            const card = createCard(value, value, "other-player", true);
+            playerContainer.append(card);
+        }
+
+        function withdrawOtherPlayerCard(playerId) {
+            const playerContainer = document.querySelector(`#board .card-container[data-player-id="${playerId}"]`);
+            const card = playerContainer.querySelector(".card");
+            playerContainer.removeChild(card);
         }
 
         function revealBoard() {
-            const cards = document.getElementById("other-cards").querySelectorAll(".card");
-            cards.forEach((card)  => flipCard(card));
+            const cards = document.querySelectorAll("#board .card");
+            cards.forEach((card) => {
+                if (!card.parentNode.classList.contains("current-player")) {
+                    flipCard(card);
+                }
+            });
         }
 
         function resetBoard() {
-            // var cards = document.querySelectorAll('.card');
+            var cards = document.querySelectorAll('#board .card');
             // cards.forEach(function(card) {
             //     card.classList.remove('flipped');
             // });
         }
 
-        function createCard(value, left, top, flipped) {
+        function createCard(value, text, typeClass, flipped) {
             const template = document.getElementById("card-template");
             const clone = template.content.cloneNode(true);
 
             const card = clone.querySelector(".card");
+
+            text = text || value;
             card.querySelector(".top-left").innerHTML
                 = card.querySelector(".bottom-right").innerHTML
                 = card.querySelector(".middle").innerHTML
-                = value;
+                = text;
 
-            card.style.left = left + "px";
-            card.style.top = top + "px";
+            card.dataset.value = value;
+
             if (flipped) card.classList.add("flipped");
-            card.classList.add("other-player");
+            card.classList.add(typeClass);
 
             return card;
+        }
+
+        function createBoardPlayerCardContainer(playerId, playerName, isCurrentPlayer) {
+            const template = document.getElementById("board-player-container-template");
+            const clone = template.content.cloneNode(true);
+
+            const container = clone.querySelector(".card-container");
+            container.querySelector(".player-name").innerHTML = playerName;
+
+            container.dataset.playerId = playerId;
+            if (isCurrentPlayer) container.classList.add("current-player");
+
+            return container;
+        }
+
+        function createHandCardContainer(cardValue) {
+            const template = document.getElementById("hand-card-container-template");
+            const clone = template.content.cloneNode(true);
+
+            const container = clone.querySelector(".card-container");
+            container.dataset.value = cardValue;
+
+            return container;
         }
     </script>
     <style>
@@ -109,7 +219,6 @@
         .card-stack .card-container {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
             margin: 0 10px;
         }
@@ -120,12 +229,15 @@
             padding: 5px;
         }
 
+        .cart-container {
+            position: relative
+        }
+
         .card-slot {
             width: 72px;
             height: 96px;
             position: relative;
             perspective: 1000px;
-            background-color: white;
             border: 1px dashed lightgrey;
             border-radius: 5px;
             padding: 5px;
@@ -137,12 +249,8 @@
             perspective: 1000px;
             cursor: pointer;
             padding: 5px;
-
             position: absolute;
-        }
-
-        .card.player {
-            transition: left 0.2s ease-out, top 0.2s ease-out;
+            z-index: 10;
         }
 
         .card.other-player {
@@ -238,6 +346,17 @@
             <div class="back"></div>
         </div>
     </template>
+    <template id="board-player-container-template">
+        <div class="card-container" data-player-id="">
+            <div class="card-slot"></div>
+            <div class="player-name"></div>
+        </div>
+    </template>
+    <template id="hand-card-container-template">
+        <div class="card-container" data-value="">
+            <div class="card-slot"></div>
+        </div>
+    </template>
 </head>
 
 <body>
@@ -249,23 +368,13 @@
     <div class="table">
 
         <div id="board" class="card-stack">
-            <div class="card-container">
-                <div class="card-slot"></div>
-                <div class="player-name">Player 1</div>
-            </div>
-
-            <div class="card-container">
-                <div class="card-slot"></div>
-                <div class="player-name">Player 2</div>
-            </div>
-
-            <div class="card-container">
-                <div class="card-slot"></div>
-                <div class="player-name">Player 3</div>
-            </div>
         </div>
 
-        <a href="#" onclick="otherPlayerPlayedCard('13', 2)">Add card</a>
+        <script type="text/javascript">
+            var nextPlayerId = 1;
+        </script>
+        <a href="#" onclick="addPlayer(++nextPlayerId, `Player ${nextPlayerId}`, false)">Add player</a>
+        <a href="#" onclick="playOtherPlayerCard('13', nextPlayerId)">Play card</a>
 
         <div class="toolbar">
             <button onclick="revealBoard()">Reveal</button>
@@ -273,19 +382,6 @@
         </div>
 
         <div id="hand" class="card-stack">
-
-            <div class="card-container">
-                <div class="card-slot"></div>
-            </div>
-            <div class="card-container">
-                <div class="card-slot"></div>
-            </div>
-            <div class="card-container">
-                <div class="card-slot"></div>
-            </div>
-            <div class="card-container">
-                <div class="card-slot"></div>
-            </div>
         </div>
     </div>
 
@@ -294,77 +390,5 @@
     </div>
     <div class="toolbar">
         <button>Spectate</button>
-    </div>
-
-    <div id="other-cards"></div>
-    <div id="player-cards">
-        <div class="card player">
-            <div class="front">
-                <div class="top-left">
-                    <div class="suit">♠</div>
-                </div>
-                <div class="middle">
-                    <div class="value">1</div>
-                </div>
-                <div class="bottom-right">
-                    <div class="suit">♠</div>
-                </div>
-            </div>
-            <div class="back">
-                <div class="middle">
-                </div>
-            </div>
-        </div>
-        <div class="card player">
-            <div class="front">
-                <div class="top-left">
-                    <div class="suit">♠</div>
-                </div>
-                <div class="middle">
-                    <div class="value">2</div>
-                </div>
-                <div class="bottom-right">
-                    <div class="suit">♠</div>
-                </div>
-            </div>
-            <div class="back">
-                <div class="middle">
-                </div>
-            </div>
-        </div>
-        <div class="card player">
-            <div class="front">
-                <div class="top-left">
-                    <div class="suit">♠</div>
-                </div>
-                <div class="middle">
-                    <div class="value">3</div>
-                </div>
-                <div class="bottom-right">
-                    <div class="suit">♠</div>
-                </div>
-            </div>
-            <div class="back">
-                <div class="middle">
-                </div>
-            </div>
-        </div>
-        <div class="card player">
-            <div class="front">
-                <div class="top-left">
-                    <div class="suit">♠</div>
-                </div>
-                <div class="middle">
-                    <div class="value">5</div>
-                </div>
-                <div class="bottom-right">
-                    <div class="suit">♠</div>
-                </div>
-            </div>
-            <div class="back">
-                <div class="middle">
-                </div>
-            </div>
-        </div>
     </div>
 </body>
